@@ -1738,7 +1738,7 @@ subroutine update_ice_model_slow(Ice, IST, G, IG, runoff, calving, &
               IST%sea_lev(isc-1:iec+1,jsc-1:jec+1), IST%t_surf(isc:iec,jsc:jec,0),  &
               Ice%calving_hflx(:,:), ice_cover(isc-1:iec+1,jsc-1:jec+1), &
               hi_avg(isc-1:iec+1,jsc-1:jec+1), stagger=CGRID_NE, &
-              stress_stagger=Ice%flux_uv_stagger)
+              stress_stagger=Ice%flux_uv_stagger,sss=IST%s_surf(isc:iec,jsc:jec))
     else
       call icebergs_run( Ice%icebergs, IST%Time, &
               Ice%calving(:,:), IST%u_ocn(isc-1:iec+1,jsc-1:jec+1), &
@@ -1748,7 +1748,7 @@ subroutine update_ice_model_slow(Ice, IST, G, IG, runoff, calving, &
               IST%sea_lev(isc-1:iec+1,jsc-1:jec+1), IST%t_surf(isc:iec,jsc:jec,0),  &
               Ice%calving_hflx(:,:), ice_cover(isc-1:iec+1,jsc-1:jec+1), &
               hi_avg(isc-1:iec+1,jsc-1:jec+1), stagger=BGRID_NE, &
-              stress_stagger=Ice%flux_uv_stagger)
+              stress_stagger=Ice%flux_uv_stagger,sss=IST%s_surf(isc:iec,jsc:jec))
     endif
     call mpp_clock_begin(iceClock) ; call mpp_clock_begin(iceClock2) ! Restart the sea-ice clocks.
   endif
