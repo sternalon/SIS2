@@ -252,7 +252,16 @@ subroutine set_ocean_top_fluxes(Ice, IST, IOF, G, IG)
     Ice%mi(i2,j2) = Ice%mi(i2,j2) + IST%part_size(i,j,k) * &
         (IG%H_to_kg_m2 * (IST%mH_snow(i,j,k) + IST%mH_ice(i,j,k)))
   enddo ; enddo ; enddo
-  if (IST%do_icebergs) call icebergs_incr_mass(Ice%icebergs, Ice%mi(:,:)) ! Add icebergs mass in kg/m^2
+
+  !Alon: It would be better not to call an iceberg routine here if possible
+  if (IST%do_icebergs) then
+    call icebergs_incr_mass(Ice%icebergs, Ice%mi(:,:)) ! Add icebergs mass in kg/m^2
+    if  (IST%pass_iceberg_area_to_ocean) then
+      Ice%ustar_berg(:,:)=Ice%icebergs%grd%ustar_iceberg(Ice%icebergs%grd%isc:Ice%icebergs%grd%iec,Ice%icebergs%grd%jsc:Ice%icebergs%grd%jec)
+      Ice%area_berg(:,:)=Ice%icebergs%grd%spread_area(Ice%icebergs%grd%isc:Ice%icebergs%grd%iec,Ice%icebergs%grd%jsc:Ice%icebergs%grd%jec)
+      Ice%mass_berg(:,:)=Ice%icebergs%grd%spread_mass(Ice%icebergs%grd%isc:Ice%icebergs%grd%iec,Ice%icebergs%grd%jsc:Ice%icebergs%grd%jec)
+    endif
+  endif
 
 !$OMP parallel do default(none) shared(isc,iec,jsc,jec,ncat,Ice,IST,i_off,j_off) &
 !$OMP                           private(i2,j2)
@@ -281,6 +290,10 @@ subroutine set_ocean_top_fluxes(Ice, IST, IOF, G, IG)
     Ice%lprec(i2,j2) = IOF%lprec_ocn_top(i,j)
     Ice%runoff(i2,j2)  = IOF%runoff(i,j)
     Ice%calving(i2,j2) = IOF%calving(i,j)
+    !Should ustar_berg and area_berg be defined in IOF???
+    !Ice%ustar_berg(i2,j2) = IOF%ustar_berg(i,j)
+    !Ice%area_berg(i2,j2) = IOF%area_berg(i,j)
+    !Ice%mass_berg(i2,j2) = IOF%mass_berg(i,j)
     Ice%runoff_hflx(i2,j2)  = IOF%runoff_hflx(i,j)
     Ice%calving_hflx(i2,j2) = IOF%calving_hflx(i,j)
     Ice%flux_salt(i2,j2) = IOF%flux_salt(i,j)
@@ -1206,6 +1219,8 @@ subroutine ice_model_init(Ice, Time_Init, Time, Time_step_fast, Time_step_slow )
                  "calculations.", units="m", default=0.0)
   call get_param(param_file, mod, "DO_ICEBERGS", IST%do_icebergs, &
                  "If true, call the iceberg module.", default=.false.)
+  call get_param(param_file, mod, "PASS_ICEBERG_AREA_TO_OCEAN", IST%pass_iceberg_area_to_ocean, &
+                 "If true, iceberg area is passed through coupler", default=.false.)
   call get_param(param_file, mod, "ADD_DIURNAL_SW", IST%add_diurnal_sw, &
                  "If true, add a synthetic diurnal cycle to the shortwave \n"//&
                  "radiation.", default=.false.)

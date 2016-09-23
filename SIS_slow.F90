@@ -154,6 +154,7 @@ subroutine SIS_dynamics_trans(IST, dt_slow, CS, icebergs_CS, G, IG)
   type(icebergs),          pointer       :: icebergs_CS
 
   real, dimension(G%isc:G%iec,G%jsc:G%jec) :: h2o_chg_xprt, mass, tmp2d
+  real, dimension(:,:), allocatable :: ustar_berg, area_berg, mass_berg
   real, dimension(SZI_(G),SZJ_(G),IG%CatIce,IG%NkIce) :: &
     temp_ice    ! A diagnostic array with the ice temperature in degC.
   real, dimension(SZI_(G),SZJ_(G),IG%CatIce) :: &
@@ -593,6 +594,28 @@ real, dimension(SZIB_(G),SZJB_(G)) :: &
       if (IST%do_icebergs) call icebergs_incr_mass(icebergs_CS, mass(isc:iec,jsc:jec)) ! Add icebergs mass in kg/m^2
       call post_data(CS%id_mib, mass(isc:iec,jsc:jec), CS%diag)
     endif
+    if (CS%id_ustar_berg>0) then
+      allocate(ustar_berg(G%isc:G%iec,G%jsc:G%jec))
+      ustar_berg(:,:)=0.
+      if ((IST%do_icebergs) .and. (IST%pass_iceberg_area_to_ocean))&
+        ustar_berg(isc:iec,jsc:jec)=icebergs_CS%grd%ustar_iceberg(icebergs_CS%grd%isc:icebergs_CS%grd%iec,icebergs_CS%grd%jsc:icebergs_CS%grd%jec)
+      call post_data(CS%id_ustar_berg, ustar_berg(isc:iec,jsc:jec), CS%diag)
+    endif
+    if (CS%id_area_berg>0) then
+      allocate(area_berg(G%isc:G%iec,G%jsc:G%jec))
+      area_berg(:,:)=0.
+      if ((IST%do_icebergs) .and. (IST%pass_iceberg_area_to_ocean))&
+        area_berg(isc:iec,jsc:jec)=icebergs_CS%grd%spread_area(icebergs_CS%grd%isc:icebergs_CS%grd%iec,icebergs_CS%grd%jsc:icebergs_CS%grd%jec)
+      call post_data(CS%id_area_berg, area_berg(isc:iec,jsc:jec), CS%diag)
+    endif
+    if (CS%id_mass_berg>0) then
+      allocate(mass_berg(G%isc:G%iec,G%jsc:G%jec))
+      mass_berg(:,:)=0.
+      if ((IST%do_icebergs) .and. (IST%pass_iceberg_area_to_ocean))&
+        mass_berg(isc:iec,jsc:jec)=icebergs_CS%grd%spread_mass(icebergs_CS%grd%isc:icebergs_CS%grd%iec,icebergs_CS%grd%jsc:icebergs_CS%grd%jec)
+      call post_data(CS%id_mass_berg, mass_berg(isc:iec,jsc:jec), CS%diag)
+    endif
+
   endif
 
   call mpp_clock_end(iceClock8)
@@ -1114,6 +1137,12 @@ subroutine SIS_slow_init(Time, G, IG, param_file, diag, CS)
                'ice mass', 'kg/m^2', missing_value=missing)
   CS%id_mib  = register_diag_field('ice_model', 'MIB', diag%axesT1, Time, &
                'ice + bergs mass', 'kg/m^2', missing_value=missing)
+  CS%id_ustar_berg  = register_diag_field('ice_model', 'USTAR_BERG', diag%axesT1, Time, &
+               'iceberg ustar', 'm/s', missing_value=missing)
+  CS%id_area_berg  = register_diag_field('ice_model', 'AREA_BERG', diag%axesT1, Time, &
+               'icebergs area', 'm2/m2', missing_value=missing)
+  CS%id_mass_berg  = register_diag_field('ice_model', 'MASS_BERG', diag%axesT1, Time, &
+               'icebergs mass', 'kg/m2', missing_value=missing)
 
   iceClock4 = mpp_clock_id( '  Ice: slow: dynamics', flags=clock_flag_default, grain=CLOCK_LOOP )
   iceClocka = mpp_clock_id( '       slow: ice_dynamics', flags=clock_flag_default, grain=CLOCK_LOOP )
