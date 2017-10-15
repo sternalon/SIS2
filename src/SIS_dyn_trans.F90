@@ -210,7 +210,7 @@ subroutine update_icebergs(IST, OSS, IOF, FIA, icebergs_CS, dt_slow, G, IG, CS)
             hi_avg(isc-1:iec+1,jsc-1:jec+1), stagger=CGRID_NE, &
             stress_stagger=stress_stagger,sss=OSS%s_surf(isc:iec,jsc:jec), &
             mass_berg=IOF%mass_berg, ustar_berg=IOF%ustar_berg, &
-            area_berg=IOF%area_berg )
+            area_berg=IOF%area_berg, u_berg=IOF%u_berg, v_berg=IOF%v_berg)
   else
     call icebergs_run( icebergs_CS, CS%Time, &
             FIA%calving(isc:iec,jsc:jec), OSS%u_ocn_B(isc-1:iec+1,jsc-1:jec+1), &
@@ -221,12 +221,18 @@ subroutine update_icebergs(IST, OSS, IOF, FIA, icebergs_CS, dt_slow, G, IG, CS)
             hi_avg(isc-1:iec+1,jsc-1:jec+1), stagger=BGRID_NE, &
             stress_stagger=stress_stagger, sss=OSS%s_surf(isc:iec,jsc:jec), &
             mass_berg=IOF%mass_berg, ustar_berg=IOF%ustar_berg, &
-            area_berg=IOF%area_berg )
+            area_berg=IOF%area_berg, u_berg=IOF%u_berg, v_berg=IOF%v_berg)
   endif
 
   call enable_SIS_averaging(dt_slow, CS%Time, CS%diag)
   if (IOF%id_ustar_berg>0 .and. associated(IOF%ustar_berg)) then
     call post_data(IOF%id_ustar_berg, IOF%ustar_berg, CS%diag)
+  endif
+  if (IOF%id_u_berg>0 .and. associated(IOF%u_berg)) then
+    call post_data(IOF%id_u_berg, IOF%u_berg, CS%diag)
+  endif
+  if (IOF%id_v_berg>0 .and. associated(IOF%v_berg)) then
+    call post_data(IOF%id_v_berg, IOF%v_berg, CS%diag)
   endif
   if (IOF%id_area_berg>0 .and. associated(IOF%area_berg)) then
     call post_data(IOF%id_area_berg, IOF%area_berg, CS%diag)
