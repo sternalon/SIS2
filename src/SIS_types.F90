@@ -424,8 +424,8 @@ type ice_ocean_flux_type
   !Iceberg fields
   real, pointer, dimension(:,:)   :: &
     ustar_berg =>NULL(), &  ! ustar contribution below icebergs in m/s
-    u_berg =>NULL(), &  ! u contribution below icebergs in m/s
-    v_berg =>NULL(), &  ! v contribution below icebergs in m/s
+    str_x_berg =>NULL(), &  ! u contribution below icebergs in m/s
+    str_y_berg =>NULL(), &  ! v contribution below icebergs in m/s
     area_berg =>NULL(),  &  ! fraction of grid cell covered by icebergs in m2/m2
     mass_berg =>NULL()      ! mass of icebergs in km/m^2
 
@@ -467,7 +467,7 @@ type ice_ocean_flux_type
   integer :: id_saltf=-1
   ! The following are diagnostic IDs for iceberg-related fields.  These are only
   ! used if the iceberg code is activated.
-  integer ::  id_ustar_berg=-1, id_u_berg=-1, id_v_berg=-1, id_area_berg=-1, id_mass_berg=-1
+  integer ::  id_ustar_berg=-1, id_str_x_berg=-1, id_str_y_berg=-1, id_area_berg=-1, id_mass_berg=-1
 end type ice_ocean_flux_type
 
 contains
@@ -919,8 +919,8 @@ subroutine alloc_ice_ocean_flux(IOF, HI, do_iceberg_fields)
   if (alloc_bergs) then
     allocate(IOF%mass_berg(HI%isc:HI%iec, HI%jsc:HI%jec)) ; IOF%mass_berg(:,:) = 0.0
     allocate(IOF%ustar_berg(HI%isc:HI%iec, HI%jsc:HI%jec)) ; IOF%ustar_berg(:,:) = 0.0
-    allocate(IOF%u_berg(HI%isc:HI%iec, HI%jsc:HI%jec)) ; IOF%u_berg(:,:) = 0.0
-    allocate(IOF%v_berg(HI%isc:HI%iec, HI%jsc:HI%jec)) ; IOF%v_berg(:,:) = 0.0
+    allocate(IOF%str_x_berg(HI%isc:HI%iec, HI%jsc:HI%jec)) ; IOF%str_x_berg(:,:) = 0.0
+    allocate(IOF%str_y_berg(HI%isc:HI%iec, HI%jsc:HI%jec)) ; IOF%str_y_berg(:,:) = 0.0
     allocate(IOF%area_berg(HI%isc:HI%iec, HI%jsc:HI%jec)) ; IOF%area_berg(:,:) = 0.0
   endif
 
@@ -2268,8 +2268,8 @@ subroutine dealloc_ice_ocean_flux(IOF)
   !Deallocating iceberg fields
   if (associated(IOF%mass_berg)) deallocate(IOF%mass_berg)
   if (associated(IOF%ustar_berg)) deallocate(IOF%ustar_berg)
-  if (associated(IOF%u_berg)) deallocate(IOF%u_berg)
-  if (associated(IOF%v_berg)) deallocate(IOF%v_berg)
+  if (associated(IOF%str_x_berg)) deallocate(IOF%str_x_berg)
+  if (associated(IOF%str_y_berg)) deallocate(IOF%str_y_berg)
   if (associated(IOF%area_berg)) deallocate(IOF%area_berg)
 
   deallocate(IOF)

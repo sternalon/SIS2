@@ -334,11 +334,11 @@ subroutine ice_diagnostics_init(IOF, OSS, FIA, G, IG, diag, Time, Cgrid)
   if (associated(IOF%ustar_berg)) &
     IOF%id_ustar_berg  = register_SIS_diag_field('ice_model', 'USTAR_BERG', diag%axesT1, Time, &
                'iceberg ustar', 'm/s', missing_value=missing)
-  if (associated(IOF%u_berg)) &
-    IOF%id_u_berg  = register_SIS_diag_field('ice_model', 'U_BERG', diag%axesT1, Time, &
+  if (associated(IOF%str_x_berg)) &
+    IOF%id_str_x_berg  = register_SIS_diag_field('ice_model', 'STR_X_BERG', diag%axesT1, Time, &
                'iceberg u', 'm/s', missing_value=missing)
-  if (associated(IOF%v_berg)) &
-    IOF%id_v_berg  = register_SIS_diag_field('ice_model', 'V_BERG', diag%axesT1, Time, &
+  if (associated(IOF%str_y_berg)) &
+    IOF%id_str_y_berg  = register_SIS_diag_field('ice_model', 'STR_Y_BERG', diag%axesT1, Time, &
                'iceberg v', 'm/s', missing_value=missing)
   if (associated(IOF%area_berg)) &
     IOF%id_area_berg  = register_SIS_diag_field('ice_model', 'AREA_BERG', diag%axesT1, Time, &

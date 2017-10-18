@@ -538,8 +538,8 @@ subroutine set_ocean_top_fluxes(Ice, IST, IOF, FIA, OSS, G, IG, sCS)
     if  (sCS%pass_iceberg_area_to_ocean) then
       Ice%mass_berg(:,:) = IOF%mass_berg(:,:)
       if (associated(IOF%ustar_berg)) Ice%ustar_berg(:,:) = IOF%ustar_berg(:,:)
-      if (associated(IOF%u_berg)) Ice%u_berg(:,:) = IOF%u_berg(:,:)
-      if (associated(IOF%v_berg)) Ice%v_berg(:,:) = IOF%v_berg(:,:)
+      if (associated(IOF%str_x_berg)) Ice%str_x_berg(:,:) = IOF%str_x_berg(:,:)
+      if (associated(IOF%str_y_berg)) Ice%str_y_berg(:,:) = IOF%str_y_berg(:,:)
       if (associated(IOF%area_berg))  Ice%area_berg(:,:) = IOF%area_berg(:,:)
     endif
   endif

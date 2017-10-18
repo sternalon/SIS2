@@ -104,8 +104,8 @@ type ice_data_type !  ice_public_type
     calving => NULL(), &  ! Calving of ice or runoff of frozen fresh water into
                           ! the ocean, in kg m-2.
     ustar_berg => NULL(), &  !ustar contribution below icebergs in m/s
-    u_berg => NULL(), &  ! zonal momentum contribution below icebergs in m/s
-    v_berg => NULL(), &  ! meridional momentum contribution below icebergs in m/s
+    str_x_berg => NULL(), &  ! zonal momentum contribution below icebergs in m/s
+    str_y_berg => NULL(), &  ! meridional momentum contribution below icebergs in m/s
     area_berg => NULL(),  &  !fraction of grid cell covered by icebergs in m2/m2
     mass_berg => NULL(),  &  !mass of icebergs in km/m^2
     runoff_hflx => NULL(), &  ! The heat flux associated with runoff, based on
@@ -200,8 +200,8 @@ subroutine ice_type_slow_reg_restarts(domain, CatIce, param_file, Ice, &
 
   if (associated(Ice%sCS)) then ; if (Ice%sCS%pass_iceberg_area_to_ocean) then
     allocate(Ice%ustar_berg(isc:iec, jsc:jec)) ; Ice%ustar_berg(:,:) = 0.0
-    allocate(Ice%u_berg(isc:iec, jsc:jec)) ; Ice%u_berg(:,:) = 0.0
-    allocate(Ice%v_berg(isc:iec, jsc:jec)) ; Ice%v_berg(:,:) = 0.0
+    allocate(Ice%str_x_berg(isc:iec, jsc:jec)) ; Ice%str_x_berg(:,:) = 0.0
+    allocate(Ice%str_y_berg(isc:iec, jsc:jec)) ; Ice%str_y_berg(:,:) = 0.0
     allocate(Ice%area_berg(isc:iec, jsc:jec)) ; Ice%area_berg(:,:) = 0.0
     allocate(Ice%mass_berg(isc:iec, jsc:jec)) ; Ice%mass_berg(:,:) = 0.0
   endif ; endif
@@ -324,8 +324,8 @@ subroutine dealloc_Ice_arrays(Ice)
   if (associated(Ice%mi)) deallocate(Ice%mi)
 
   if (associated(Ice%ustar_berg)) deallocate(Ice%ustar_berg)
-  if (associated(Ice%u_berg)) deallocate(Ice%u_berg)
-  if (associated(Ice%v_berg)) deallocate(Ice%v_berg)
+  if (associated(Ice%str_x_berg)) deallocate(Ice%str_x_berg)
+  if (associated(Ice%str_y_berg)) deallocate(Ice%str_y_berg)
   if (associated(Ice%area_berg)) deallocate(Ice%area_berg)
   if (associated(Ice%mass_berg)) deallocate(Ice%mass_berg)
 
@@ -392,8 +392,8 @@ subroutine Ice_public_type_chksum(mesg, Ice, check_fast, check_slow)
 
   if (slow_fields .and. associated(Ice%sCS)) then ; if (Ice%sCS%pass_iceberg_area_to_ocean) then
     call chksum(Ice%ustar_berg, trim(mesg)//" Ice%ustar_berg")
-    call chksum(Ice%u_berg, trim(mesg)//" Ice%u_berg")
-    call chksum(Ice%v_berg, trim(mesg)//" Ice%v_berg")
+    call chksum(Ice%str_x_berg, trim(mesg)//" Ice%str_x_berg")
+    call chksum(Ice%str_y_berg, trim(mesg)//" Ice%str_y_berg")
     call chksum(Ice%area_berg, trim(mesg)//" Ice%area_berg")
     call chksum(Ice%mass_berg, trim(mesg)//" Ice%mass_berg")
   endif ; endif
@@ -634,8 +634,8 @@ subroutine ice_data_type_chksum(id, timestep, Ice)
 
     if (associated(Ice%sCS)) then ; if (Ice%sCS%pass_iceberg_area_to_ocean) then
       write(outunit,100) 'ice_data_type%ustar_berg         ',mpp_chksum(Ice%ustar_berg    )
-      write(outunit,100) 'ice_data_type%u_berg         ',mpp_chksum(Ice%u_berg    )
-      write(outunit,100) 'ice_data_type%v_berg         ',mpp_chksum(Ice%v_berg    )
+      write(outunit,100) 'ice_data_type%str_x_berg         ',mpp_chksum(Ice%str_x_berg    )
+      write(outunit,100) 'ice_data_type%str_y_berg         ',mpp_chksum(Ice%str_y_berg    )
       write(outunit,100) 'ice_data_type%area_berg          ',mpp_chksum(Ice%area_berg     )
       write(outunit,100) 'ice_data_type%mass_berg          ',mpp_chksum(Ice%mass_berg     )
     endif ; endif

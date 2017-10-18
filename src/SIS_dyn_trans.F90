@@ -210,7 +210,7 @@ subroutine update_icebergs(IST, OSS, IOF, FIA, icebergs_CS, dt_slow, G, IG, CS)
             hi_avg(isc-1:iec+1,jsc-1:jec+1), stagger=CGRID_NE, &
             stress_stagger=stress_stagger,sss=OSS%s_surf(isc:iec,jsc:jec), &
             mass_berg=IOF%mass_berg, ustar_berg=IOF%ustar_berg, &
-            area_berg=IOF%area_berg, u_berg=IOF%u_berg, v_berg=IOF%v_berg)
+            area_berg=IOF%area_berg, str_x_berg=IOF%str_x_berg, str_y_berg=IOF%str_y_berg)
   else
     call icebergs_run( icebergs_CS, CS%Time, &
             FIA%calving(isc:iec,jsc:jec), OSS%u_ocn_B(isc-1:iec+1,jsc-1:jec+1), &
@@ -221,18 +221,18 @@ subroutine update_icebergs(IST, OSS, IOF, FIA, icebergs_CS, dt_slow, G, IG, CS)
             hi_avg(isc-1:iec+1,jsc-1:jec+1), stagger=BGRID_NE, &
             stress_stagger=stress_stagger, sss=OSS%s_surf(isc:iec,jsc:jec), &
             mass_berg=IOF%mass_berg, ustar_berg=IOF%ustar_berg, &
-            area_berg=IOF%area_berg, u_berg=IOF%u_berg, v_berg=IOF%v_berg)
+            area_berg=IOF%area_berg, str_x_berg=IOF%str_x_berg, str_y_berg=IOF%str_y_berg)
   endif
 
   call enable_SIS_averaging(dt_slow, CS%Time, CS%diag)
   if (IOF%id_ustar_berg>0 .and. associated(IOF%ustar_berg)) then
     call post_data(IOF%id_ustar_berg, IOF%ustar_berg, CS%diag)
   endif
-  if (IOF%id_u_berg>0 .and. associated(IOF%u_berg)) then
-    call post_data(IOF%id_u_berg, IOF%u_berg, CS%diag)
+  if (IOF%id_str_x_berg>0 .and. associated(IOF%str_x_berg)) then
+    call post_data(IOF%id_str_x_berg, IOF%str_x_berg, CS%diag)
   endif
-  if (IOF%id_v_berg>0 .and. associated(IOF%v_berg)) then
-    call post_data(IOF%id_v_berg, IOF%v_berg, CS%diag)
+  if (IOF%id_str_y_berg>0 .and. associated(IOF%str_y_berg)) then
+    call post_data(IOF%id_str_y_berg, IOF%str_y_berg, CS%diag)
   endif
   if (IOF%id_area_berg>0 .and. associated(IOF%area_berg)) then
     call post_data(IOF%id_area_berg, IOF%area_berg, CS%diag)
@@ -982,18 +982,38 @@ end subroutine finish_ocean_top_stresses
 !   version of the routine uses wind and ice-ocean stresses on a B-grid.       !
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!
 subroutine set_ocean_top_stress_Bgrid(IOF, windstr_x_water, windstr_y_water, &
-                                      str_ice_oce_x, str_ice_oce_y, part_size, G, IG)
+                                      str_ice_oce_x_in, str_ice_oce_y_in, part_size_in, G, IG)
   type(ice_ocean_flux_type), intent(inout) :: IOF
   type(SIS_hor_grid_type),   intent(inout) :: G
   type(ice_grid_type),       intent(inout) :: IG
-  real, dimension(SZIB_(G),SZJB_(G)), intent(in) :: windstr_x_water, str_ice_oce_x
-  real, dimension(SZIB_(G),SZJB_(G)), intent(in) :: windstr_y_water, str_ice_oce_y
-  real, dimension (SZI_(G),SZJ_(G),0:IG%CatIce), intent(in) :: part_size
+  real, dimension(SZIB_(G),SZJB_(G)), intent(in) :: windstr_x_water, str_ice_oce_x_in
+  real, dimension(SZIB_(G),SZJB_(G)), intent(in) :: windstr_y_water, str_ice_oce_y_in
+  real, dimension (SZI_(G),SZJ_(G),0:IG%CatIce), intent(in) :: part_size_in
+  real, dimension (SZI_(G),SZJ_(G),0:IG%CatIce+1) :: part_size
+  real, dimension(SZI_(G),SZJB_(G),0:IG%CatIce+1) :: str_ice_oce_y
+  real, dimension(SZIB_(G),SZJ_(G),0:IG%CatIce+1) :: str_ice_oce_x
 
   real    :: ps_vel ! part_size interpolated to a velocity point, nondim.
   integer :: i, j, k, isc, iec, jsc, jec, ncat
-  isc = G%isc ; iec = G%iec ; jsc = G%jsc ; jec = G%jec ; ncat = IG%CatIce
+  isc = G%isc ; iec = G%iec ; jsc = G%jsc ; jec = G%jec ; ncat = IG%CatIce+1
 
+  
+  do j=jsc,jec  ;  do i=isc,iec
+    do k=0,ncat - 1
+      part_size(i,j,k) = part_size_in(i,j,k)
+      str_ice_oce_x(i,j,k) = str_ice_oce_x_in(i,j)
+      str_ice_oce_y(i,j,k) = str_ice_oce_y_in(i,j)
+    enddo
+    if (((associated(IOF%str_x_berg))) .and. (associated(IOF%str_y_berg) .and. (associated(IOF%area_berg) ))) then 
+      part_size(i,j,ncat)= IOF%area_berg(i,j)
+      str_ice_oce_x(i,j,ncat) = IOF%str_x_berg(i,j)
+      str_ice_oce_y(i,j,ncat) = IOF%str_y_berg(i,j)
+    else
+      part_size(i,j,ncat)= 0.0
+      str_ice_oce_x(i,j,ncat) = 0.0
+      str_ice_oce_y(i,j,ncat) = 0.0
+    endif
+  enddo ; enddo
 
   if (IOF%stress_count == 0) then
     IOF%flux_u_ocn(:,:) = 0.0 ; IOF%flux_v_ocn(:,:) = 0.0
@@ -1019,11 +1039,11 @@ subroutine set_ocean_top_stress_Bgrid(IOF, windstr_x_water, windstr_y_water, &
       enddo
       do k=1,ncat ; do i=isc,iec ; if (G%mask2dT(i,j)>0.5) then
         IOF%flux_u_ocn(i,j) = IOF%flux_u_ocn(i,j) + part_size(i,j,k) * 0.25 * &
-            ((str_ice_oce_x(I,J) + str_ice_oce_x(I-1,J-1)) + &
-             (str_ice_oce_x(I-1,J) + str_ice_oce_x(I,J-1)))
+            ((str_ice_oce_x(I,J,k) + str_ice_oce_x(I-1,J-1,k)) + &
+             (str_ice_oce_x(I-1,J,k) + str_ice_oce_x(I,J-1,k)))
         IOF%flux_v_ocn(i,j) = IOF%flux_v_ocn(i,j) + part_size(i,j,k) * 0.25 * &
-            ((str_ice_oce_y(I,J) + str_ice_oce_y(I-1,J-1)) + &
-             (str_ice_oce_y(I-1,J) + str_ice_oce_y(I,J-1)))
+            ((str_ice_oce_y(I,J,k) + str_ice_oce_y(I-1,J-1,k)) + &
+             (str_ice_oce_y(I-1,J,k) + str_ice_oce_y(I,J-1,k)))
       endif ; enddo ; enddo
     enddo
   elseif (IOF%flux_uv_stagger == BGRID_NE) then
@@ -1039,8 +1059,8 @@ subroutine set_ocean_top_stress_Bgrid(IOF, windstr_x_water, windstr_y_water, &
       do k=1,ncat ; do i=isc,iec ; if (G%mask2dBu(I,J)>0.5) then
         ps_vel = 0.25 * ((part_size(i+1,j+1,k) + part_size(i,j,k)) + &
                          (part_size(i+1,j,k) + part_size(i,j+1,k)) )
-        IOF%flux_u_ocn(i,j) = IOF%flux_u_ocn(i,j) + str_ice_oce_x(I,J) * ps_vel
-        IOF%flux_v_ocn(i,j) = IOF%flux_v_ocn(i,j) + str_ice_oce_y(I,J) * ps_vel
+        IOF%flux_u_ocn(i,j) = IOF%flux_u_ocn(i,j) + str_ice_oce_x(I,J,k) * ps_vel
+        IOF%flux_v_ocn(i,j) = IOF%flux_v_ocn(i,j) + str_ice_oce_y(I,J,k) * ps_vel
       endif ; enddo ; enddo
     enddo
   elseif (IOF%flux_uv_stagger == CGRID_NE) then
@@ -1060,12 +1080,12 @@ subroutine set_ocean_top_stress_Bgrid(IOF, windstr_x_water, windstr_y_water, &
         if (G%mask2dCu(I,j)>0.5) then
           ps_vel = 0.5 * (part_size(i+1,j,k) + part_size(i,j,k))
           IOF%flux_u_ocn(i,j) = IOF%flux_u_ocn(i,j) + ps_vel * &
-              0.5 * (str_ice_oce_x(I,J) + str_ice_oce_x(I,J-1))
+              0.5 * (str_ice_oce_x(I,J,k) + str_ice_oce_x(I,J-1,k))
         endif
         if (G%mask2dCv(i,J)>0.5) then
           ps_vel = 0.5 * (part_size(i,j+1,k) + part_size(i,j,k))
           IOF%flux_v_ocn(i,j) = IOF%flux_v_ocn(i,j) + ps_vel * &
-                  0.5 * (str_ice_oce_y(I,J) + str_ice_oce_y(I-1,J))
+                  0.5 * (str_ice_oce_y(I,J,k) + str_ice_oce_y(I-1,J,k))
         endif
       enddo ; enddo
     enddo
@@ -1086,17 +1106,39 @@ end subroutine set_ocean_top_stress_Bgrid
 !   version of the routine uses wind and ice-ocean stresses on a C-grid.       !
 !~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~!
 subroutine set_ocean_top_stress_Cgrid(IOF, windstr_x_water, windstr_y_water, &
-                                      str_ice_oce_x, str_ice_oce_y, part_size, G, IG)
+                                      str_ice_oce_x_in, str_ice_oce_y_in, part_size_in, G, IG)
   type(ice_ocean_flux_type), intent(inout) :: IOF
   type(SIS_hor_grid_type),   intent(inout) :: G
   type(ice_grid_type),       intent(inout) :: IG
-  real, dimension(SZIB_(G),SZJ_(G)), intent(in) :: windstr_x_water, str_ice_oce_x
-  real, dimension(SZI_(G),SZJB_(G)), intent(in) :: windstr_y_water, str_ice_oce_y
-  real, dimension (SZI_(G),SZJ_(G),0:IG%CatIce), intent(in) :: part_size
+  real, dimension(SZIB_(G),SZJ_(G)), intent(in) :: windstr_x_water, str_ice_oce_x_in
+  real, dimension(SZI_(G),SZJB_(G)), intent(in) :: windstr_y_water, str_ice_oce_y_in
+  real, dimension (SZI_(G),SZJ_(G),0:IG%CatIce), intent(in) :: part_size_in
 
   real    :: ps_vel ! part_size interpolated to a velocity point, nondim.
   integer :: i, j, k, isc, iec, jsc, jec, ncat
-  isc = G%isc ; iec = G%iec ; jsc = G%jsc ; jec = G%jec ; ncat = IG%CatIce
+  real, dimension (SZI_(G),SZJ_(G),0:IG%CatIce+1) :: part_size
+  real, dimension(SZI_(G),SZJB_(G),0:IG%CatIce+1) :: str_ice_oce_y
+  real, dimension(SZIB_(G),SZJ_(G),0:IG%CatIce+1) :: str_ice_oce_x
+  isc = G%isc ; iec = G%iec ; jsc = G%jsc ; jec = G%jec ; ncat = IG%CatIce+1
+  
+
+  do j=jsc,jec  ;  do i=isc,iec
+    do k=0,ncat - 1
+      part_size(i,j,k) = part_size_in(i,j,k)
+      str_ice_oce_x(i,j,k) = str_ice_oce_x_in(i,j)
+      str_ice_oce_y(i,j,k) = str_ice_oce_y_in(i,j)
+    enddo
+    if (((associated(IOF%str_x_berg))) .and. (associated(IOF%str_y_berg) .and. (associated(IOF%area_berg) ))) then 
+      part_size(i,j,ncat)= IOF%area_berg(i,j)
+      str_ice_oce_x(i,j,ncat) = IOF%str_x_berg(i,j)
+      str_ice_oce_y(i,j,ncat) = IOF%str_y_berg(i,j)
+    else
+      part_size(i,j,ncat)= 0.0
+      str_ice_oce_x(i,j,ncat) = 0.0
+      str_ice_oce_y(i,j,ncat) = 0.0
+    endif
+  enddo ; enddo
+
 
   if (IOF%stress_count == 0) then
     IOF%flux_u_ocn(:,:) = 0.0 ; IOF%flux_v_ocn(:,:) = 0.0
@@ -1120,9 +1162,9 @@ subroutine set_ocean_top_stress_Cgrid(IOF, windstr_x_water, windstr_y_water, &
       enddo
       do k=1,ncat ; do i=isc,iec ; if (G%mask2dT(i,j)>0.5) then
         IOF%flux_u_ocn(i,j) = IOF%flux_u_ocn(i,j) +  part_size(i,j,k) * 0.5 * &
-                            (str_ice_oce_x(I,j) + str_ice_oce_x(I-1,j))
+                            (str_ice_oce_x(I,j,k) + str_ice_oce_x(I-1,j,k))
         IOF%flux_v_ocn(i,j) = IOF%flux_v_ocn(i,j) + part_size(i,j,k) * 0.5 * &
-                            (str_ice_oce_y(I,j) + str_ice_oce_y(i,J-1))
+                            (str_ice_oce_y(I,j,k) + str_ice_oce_y(i,J-1,k))
       endif ; enddo ; enddo
     enddo
   elseif (IOF%flux_uv_stagger == BGRID_NE) then
@@ -1142,9 +1184,9 @@ subroutine set_ocean_top_stress_Cgrid(IOF, windstr_x_water, windstr_y_water, &
         ps_vel = 0.25 * ((part_size(i+1,j+1,k) + part_size(i,j,k)) + &
                          (part_size(i+1,j,k) + part_size(i,j+1,k)) )
         IOF%flux_u_ocn(i,j) = IOF%flux_u_ocn(i,j) + ps_vel * 0.5 * &
-                            (str_ice_oce_x(I,j) + str_ice_oce_x(I,j+1))
+                            (str_ice_oce_x(I,j,k) + str_ice_oce_x(I,j+1,k))
         IOF%flux_v_ocn(i,j) = IOF%flux_v_ocn(i,j) + ps_vel * 0.5 * &
-                            (str_ice_oce_y(I,j) + str_ice_oce_y(i+1,J))
+                            (str_ice_oce_y(I,j,k) + str_ice_oce_y(i+1,J,k))
       endif ; enddo ; enddo
     enddo
   elseif (IOF%flux_uv_stagger == CGRID_NE) then
@@ -1161,11 +1203,11 @@ subroutine set_ocean_top_stress_Cgrid(IOF, windstr_x_water, windstr_y_water, &
       do k=1,ncat ; do i=isc,iec
         if (G%mask2dCu(I,j)>0.5) then
           ps_vel = 0.5 * (part_size(i+1,j,k) + part_size(i,j,k))
-          IOF%flux_u_ocn(i,j) = IOF%flux_u_ocn(i,j) + ps_vel * str_ice_oce_x(I,j)
+          IOF%flux_u_ocn(i,j) = IOF%flux_u_ocn(i,j) + ps_vel * str_ice_oce_x(I,j,k)
         endif
         if (G%mask2dCv(i,J)>0.5) then
           ps_vel = 0.5 * (part_size(i,j+1,k) + part_size(i,j,k))
-          IOF%flux_v_ocn(i,j) = IOF%flux_v_ocn(i,j) + ps_vel * str_ice_oce_y(I,j)
+          IOF%flux_v_ocn(i,j) = IOF%flux_v_ocn(i,j) + ps_vel * str_ice_oce_y(I,j,k)
         endif
       enddo ; enddo
     enddo
